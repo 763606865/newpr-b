@@ -37,11 +37,35 @@ export const LoginRoute: RouteRecordRaw = {
   },
 };
 
+export const CompanyOnboardingRoute: RouteRecordRaw = {
+  path: PageEnum.BASE_COMPANY_ONBOARDING,
+  name: PageEnum.BASE_COMPANY_ONBOARDING_NAME,
+  component: () => import('@/views/login/company-onboarding.vue'),
+  meta: {
+    title: '入驻企业',
+  },
+};
+
+export const CompanyPendingRoute: RouteRecordRaw = {
+  path: PageEnum.BASE_COMPANY_PENDING,
+  name: PageEnum.BASE_COMPANY_PENDING_NAME,
+  component: () => import('@/views/login/company-pending.vue'),
+  meta: {
+    title: '等待审核',
+  },
+};
+
 //需要验证权限
 export const asyncRoutes = [...routeModuleList];
 
 //普通路由 无需验证权限
-export const constantRouter: RouteRecordRaw[] = [LoginRoute, RootRoute, RedirectRoute];
+export const constantRouter: RouteRecordRaw[] = [
+  LoginRoute,
+  CompanyOnboardingRoute,
+  CompanyPendingRoute,
+  RootRoute,
+  RedirectRoute,
+];
 
 const router = createRouter({
   history: createWebHistory(),

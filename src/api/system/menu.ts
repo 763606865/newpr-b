@@ -1,13 +1,29 @@
 import { Alova } from '@/utils/http/alova/index';
+
 export interface ListDate {
+  id: number;
+  parent_id: number;
+  order: number;
   label: string;
   key: string;
   type: number;
   subtitle: string;
-  openType: number;
+  open_type: number;
   auth: string;
+  icon: string | null;
   path: string;
+  created_at: string;
+  updated_at: string;
   children?: ListDate[];
+}
+
+export interface MenuResponse {
+  code: number;
+  data: ListDate[];
+  meta: {
+    timestamp: number;
+    response_time: number;
+  };
 }
 
 /**
@@ -22,7 +38,10 @@ export function adminMenus() {
  * @param params
  */
 export function getMenuList(params?) {
-  return Alova.Get<{ list: ListDate[] }>('/menu/list', {
+  return Alova.Get<MenuResponse>('/menu', {
     params,
+    meta: {
+      isReturnNativeResponse: true,
+    },
   });
 }

@@ -53,7 +53,7 @@
 
   const getDarkTheme = computed(() => (designStore.darkTheme ? darkTheme : undefined));
 
-  let timer: NodeJS.Timer;
+  let timer: NodeJS.Timeout;
 
   const timekeeping = () => {
     clearInterval(timer);

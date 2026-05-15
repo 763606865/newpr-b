@@ -1,10 +1,9 @@
 import { Alova } from '@/utils/http/alova/index';
-
 /**
  * @description: 获取用户信息
  */
 export function getUserInfo() {
-  return Alova.Get<InResult>('/admin_info', {
+  return Alova.Get<InResult>('/auth/me', {
     meta: {
       isReturnNativeResponse: true,
     },
@@ -16,9 +15,10 @@ export function getUserInfo() {
  */
 export function login(params) {
   return Alova.Post<InResult>(
-    '/login',
+    '/auth/login',
     {
-      params,
+      phone: params.phone,
+      code: params.code,
     },
     {
       meta: {
@@ -26,6 +26,34 @@ export function login(params) {
       },
     }
   );
+}
+
+/**
+ * @description: 发送登录验证码
+ */
+export function sendVerificationCode(params) {
+  return Alova.Post<InResult>(
+    '/auth/send-verification-code',
+    {
+      phone: params.phone,
+    },
+    {
+      meta: {
+        isReturnNativeResponse: true,
+      },
+    }
+  );
+}
+
+/**
+ * @description: 申请企业入驻
+ */
+export function createCompany(params) {
+  return Alova.Post<InResult>('/companies', params, {
+    meta: {
+      isReturnNativeResponse: true,
+    },
+  });
 }
 
 /**

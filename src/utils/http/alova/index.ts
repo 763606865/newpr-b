@@ -59,10 +59,14 @@ export const Alova = createAlova({
   beforeRequest(method) {
     const userStore = useUser();
     const token = userStore.getToken;
+    const tokenType = userStore.getTokenType || 'Bearer';
     // 添加 token 到请求头
     if (!method.meta?.ignoreToken && token) {
-      method.config.headers['token'] = token;
+      method.config.headers['Authorization'] = `${tokenType} ${token}`;
     }
+    // 添加 Accept 请求头
+    method.config.headers['Accept'] = 'application/json';
+    method.config.headers['Content-Type'] = 'application/json';
     // 处理 api 请求前缀
     const isUrlStr = isUrl(method.url as string);
     if (!isUrlStr && urlPrefix) {
@@ -81,10 +85,10 @@ export const Alova = createAlova({
         return res;
       }
       // 请根据自身情况修改数据结构
-      const { message, code, result } = res;
+      const { message, code, data } = res;
 
       // 不进行任何处理，直接返回
-      // 用于需要直接获取 code、result、 message 这些信息时开启
+      // 用于需要直接获取 code、data、 message 这些信息时开启
       if (method.meta?.isTransformResponse === false) {
         return res.data;
       }
@@ -96,21 +100,13 @@ export const Alova = createAlova({
 
       const LoginPath = PageEnum.BASE_LOGIN;
       if (ResultEnum.SUCCESS === code) {
-        return result;
+        return data;
       }
       // 需要登录
-      if (code === 912) {
-        Modal?.warning({
-          title: '提示',
-          content: '登录身份已失效，请重新登录!',
-          okText: '确定',
-          closable: false,
-          maskClosable: false,
-          onOk: async () => {
-            storage.clear();
-            window.location.href = LoginPath;
-          },
-        });
+      if (code === 401) {
+        Message?.warning('登录身份已失效，请重新登录!');
+        storage.clear();
+        window.location.href = LoginPath;
       } else {
         // 可按需处理错误 一般情况下不是 912 错误，不一定需要弹出 message
         Message?.error(message);
@@ -119,8 +115,3 @@ export const Alova = createAlova({
     },
   },
 });
-
-// 项目，多个不同 api 地址，可导出多个实例
-// export const AlovaTwo = createAlova({
-//   baseURL: 'http://localhost:9001',
-// });
