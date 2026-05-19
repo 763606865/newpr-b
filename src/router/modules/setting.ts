@@ -13,6 +13,7 @@ const routes: Array<RouteRecordRaw> = [
       title: '设置页面',
       icon: renderIcon(SettingOutlined),
       sort: 5,
+      hidden: true,
     },
     children: [
       {
@@ -22,6 +23,15 @@ const routes: Array<RouteRecordRaw> = [
           title: '个人设置',
         },
         component: () => import('@/views/setting/account/account.vue'),
+      },
+      {
+        path: 'company',
+        name: 'setting-company',
+        meta: {
+          title: '企业信息',
+          hidden: true,
+        },
+        component: () => import('@/views/setting/company/index.vue'),
       },
       {
         path: 'system',

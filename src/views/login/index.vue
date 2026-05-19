@@ -166,7 +166,11 @@
         return;
       }
       sendingCode.value = true;
-      const { code, message: msg } = await sendVerificationCode({ phone });
+      const { code, message: msg } = await sendVerificationCode({
+        type: 'phone',
+        account: phone,
+        scene: 'login',
+      });
       if (code === ResultEnum.SUCCESS) {
         message.success(msg || '验证码发送成功');
         startCountdown();

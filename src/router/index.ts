@@ -7,7 +7,12 @@ import type { IModuleType } from './types';
 
 const modules = import.meta.glob<IModuleType>('./modules/**/*.ts', { eager: true });
 
+const allowedRouteModuleKeys = new Set(['./modules/system.ts', './modules/setting.ts']);
+
 const routeModuleList: RouteRecordRaw[] = Object.keys(modules).reduce((list, key) => {
+  if (!allowedRouteModuleKeys.has(key)) {
+    return list;
+  }
   const mod = modules[key].default ?? {};
   const modList = Array.isArray(mod) ? [...mod] : [mod];
   return [...list, ...modList];
@@ -46,6 +51,15 @@ export const CompanyOnboardingRoute: RouteRecordRaw = {
   },
 };
 
+export const CompanyRegisterRoute: RouteRecordRaw = {
+  path: PageEnum.BASE_COMPANY_REGISTER,
+  name: PageEnum.BASE_COMPANY_REGISTER_NAME,
+  component: () => import('@/views/login/company-onboarding.vue'),
+  meta: {
+    title: '注册企业',
+  },
+};
+
 export const CompanyPendingRoute: RouteRecordRaw = {
   path: PageEnum.BASE_COMPANY_PENDING,
   name: PageEnum.BASE_COMPANY_PENDING_NAME,
@@ -62,6 +76,7 @@ export const asyncRoutes = [...routeModuleList];
 export const constantRouter: RouteRecordRaw[] = [
   LoginRoute,
   CompanyOnboardingRoute,
+  CompanyRegisterRoute,
   CompanyPendingRoute,
   RootRoute,
   RedirectRoute,

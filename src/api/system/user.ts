@@ -35,7 +35,9 @@ export function sendVerificationCode(params) {
   return Alova.Post<InResult>(
     '/auth/send-verification-code',
     {
-      phone: params.phone,
+      type: params.type || 'phone',
+      account: params.account,
+      scene: params.scene || 'login',
     },
     {
       meta: {
@@ -54,6 +56,67 @@ export function createCompany(params) {
       isReturnNativeResponse: true,
     },
   });
+}
+
+/**
+ * @description: 获取当前用户绑定企业
+ */
+export function getCompanies() {
+  return Alova.Get<InResult>('/companies', {
+    meta: {
+      isReturnNativeResponse: true,
+    },
+  });
+}
+
+/**
+ * @description: 获取企业详情
+ */
+export function getCompanyDetail(id: number | string) {
+  return Alova.Get<InResult>(`/companies/${id}`, {
+    meta: {
+      isReturnNativeResponse: true,
+    },
+  });
+}
+
+/**
+ * @description: 获取企业编辑页数据
+ */
+export function getCompanyEditDetail(id: number | string) {
+  return Alova.Get<InResult>(`/companies/${id}/edit`, {
+    meta: {
+      isReturnNativeResponse: true,
+    },
+  });
+}
+
+/**
+ * @description: 更新企业信息
+ */
+export function updateCompany(id: number | string, params) {
+  return Alova.Put<InResult>(`/companies/${id}`, params, {
+    meta: {
+      isReturnNativeResponse: true,
+    },
+  });
+}
+
+/**
+ * @description: 切换企业并刷新 token
+ */
+export function refreshToken(params) {
+  return Alova.Post<InResult>(
+    '/auth/refresh-token',
+    {
+      company_id: params.company_id,
+    },
+    {
+      meta: {
+        isReturnNativeResponse: true,
+      },
+    }
+  );
 }
 
 /**
