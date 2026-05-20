@@ -5,6 +5,7 @@ import { store } from '@/store';
 import { asyncRoutes, constantRouter } from '@/router/index';
 import { generateDynamicRoutes } from '@/router/generator';
 import { useProjectSetting } from '@/hooks/setting/useProjectSetting';
+import { hasCompanyMenuAccess } from '@/utils/company-access';
 
 interface TreeHelperConfig {
   id: string;
@@ -91,9 +92,18 @@ export const useAsyncRouteStore = defineStore({
       const permissionsList = data.permissions ?? [];
       const routeFilter = (route) => {
         const { meta } = route;
+        if (meta?.ignoreCompanyMenu) {
+          return true;
+        }
         const { permissions } = meta || {};
-        if (!permissions) return true;
-        return permissionsList.some((item) => permissions.includes(item.value));
+        const menuCodes = Array.isArray(meta?.menuCodes)
+          ? meta.menuCodes
+          : meta?.menuCode
+          ? [meta.menuCode]
+          : [];
+        const permissionPass = !permissions?.length || permissionsList.some((item) => permissions.includes(item.value));
+        const companyMenuPass = hasCompanyMenuAccess(data?.current_company, menuCodes);
+        return permissionPass && companyMenuPass;
       };
       const { permissionMode } = useProjectSetting();
       if (unref(permissionMode) === 'BACK') {
@@ -105,13 +115,12 @@ export const useAsyncRouteStore = defineStore({
         }
       } else {
         try {
-          //过滤账户是否拥有某一个权限，并将菜单从加载列表移除
+          // 递归过滤时已经会保留“父级不匹配但子级可访问”的菜单节点。
           accessedRouters = filter(asyncRoutes, routeFilter);
         } catch (error) {
           console.log(error);
         }
       }
-      accessedRouters = accessedRouters.filter(routeFilter);
       this.setRouters(accessedRouters);
       this.setMenus(accessedRouters);
       return toRaw(accessedRouters);

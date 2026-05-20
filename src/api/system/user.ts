@@ -10,6 +10,14 @@ export function getUserInfo() {
   });
 }
 
+export function getUserInfoLatest() {
+  return Alova.Get<InResult>(`/auth/me?_t=${Date.now()}`, {
+    meta: {
+      isReturnNativeResponse: true,
+    },
+  });
+}
+
 /**
  * @description: 用户登录
  */

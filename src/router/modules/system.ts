@@ -13,6 +13,7 @@ const routes: Array<RouteRecordRaw> = [
       title: '系统设置',
       icon: renderIcon(OptionsSharp),
       sort: 1,
+      ignoreCompanyMenu: true,
     },
     children: [
       {
@@ -20,6 +21,7 @@ const routes: Array<RouteRecordRaw> = [
         name: 'system_menu',
         meta: {
           title: '菜单权限',
+          ignoreCompanyMenu: true,
         },
         component: () => import('@/views/system/menu/menu.vue'),
       },
@@ -28,6 +30,7 @@ const routes: Array<RouteRecordRaw> = [
         name: 'system_role',
         meta: {
           title: '角色权限',
+          ignoreCompanyMenu: true,
         },
         component: () => import('@/views/system/role/role.vue'),
       },

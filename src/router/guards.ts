@@ -4,53 +4,13 @@ import { useAsyncRoute } from '@/store/modules/asyncRoute';
 import { useUser } from '@/store/modules/user';
 import { ACCESS_TOKEN } from '@/store/mutation-types';
 import { storage } from '@/utils/Storage';
+import { resolveCompanyRedirectPath } from '@/utils/company';
 import type { RouteRecordRaw } from 'vue-router';
 import { isNavigationFailure, Router } from 'vue-router';
 import { RedirectName } from './constant';
 
 const LOGIN_PATH = PageEnum.BASE_LOGIN;
-const COMPANY_ONBOARDING_PATH = PageEnum.BASE_COMPANY_ONBOARDING;
-const COMPANY_PENDING_PATH = PageEnum.BASE_COMPANY_PENDING;
-
 const whitePathList = [LOGIN_PATH]; // no redirect whitelist
-
-function getUserCompanies(userInfo: Record<string, any> | null | undefined) {
-  if (!userInfo || typeof userInfo !== 'object') return [];
-  return Array.isArray(userInfo.companies) ? userInfo.companies : [];
-}
-
-function getCurrentCompanyStatus(userInfo: Record<string, any> | null | undefined) {
-  if (!userInfo || typeof userInfo !== 'object') return -1;
-  if (!userInfo.current_company) return -1;
-  return Number(userInfo.current_company?.status ?? -1);
-}
-
-function shouldRedirectToCompanyOnboarding(path: string, userInfo: Record<string, any> | null | undefined) {
-  const currentCompanyStatus = getCurrentCompanyStatus(userInfo);
-  if (currentCompanyStatus === 2) {
-    return path !== COMPANY_PENDING_PATH ? COMPANY_PENDING_PATH : '';
-  }
-
-  if (currentCompanyStatus === 0) {
-    return path !== COMPANY_ONBOARDING_PATH ? COMPANY_ONBOARDING_PATH : '';
-  }
-
-  if (currentCompanyStatus === 1) {
-    if (path === COMPANY_ONBOARDING_PATH || path === COMPANY_PENDING_PATH) {
-      return PageEnum.BASE_HOME;
-    }
-    return '';
-  }
-
-  const companies = getUserCompanies(userInfo);
-  if (!companies.length) {
-    return path !== COMPANY_ONBOARDING_PATH ? COMPANY_ONBOARDING_PATH : '';
-  }
-  if (path === COMPANY_ONBOARDING_PATH || path === COMPANY_PENDING_PATH) {
-    return PageEnum.BASE_HOME;
-  }
-  return '';
-}
 
 export function createRouterGuards(router: Router) {
   const userStore = useUser();
@@ -92,11 +52,16 @@ export function createRouterGuards(router: Router) {
       return;
     }
 
-    const cachedRedirectPath = shouldRedirectToCompanyOnboarding(
+    const cachedRedirectPath = resolveCompanyRedirectPath(
       to.path,
       userStore.getUserInfo as Record<string, any>
     );
-    if (asyncRouteStore.getIsDynamicRouteAdded && cachedRedirectPath) {
+    if (cachedRedirectPath && to.path === cachedRedirectPath) {
+      next();
+      return;
+    }
+
+    if (cachedRedirectPath) {
       next({ path: cachedRedirectPath, replace: true });
       return;
     }
@@ -107,7 +72,7 @@ export function createRouterGuards(router: Router) {
     }
 
     const userInfo = await userStore.getInfo();
-    const redirectPathByCompany = shouldRedirectToCompanyOnboarding(to.path, userInfo);
+    const redirectPathByCompany = resolveCompanyRedirectPath(to.path, userInfo);
     if (redirectPathByCompany) {
       asyncRouteStore.setDynamicRouteAdded(true);
       next({ path: redirectPathByCompany, replace: true });

@@ -96,6 +96,7 @@
   import { PageEnum } from '@/enums/pageEnum';
   import { websiteConfig } from '@/config/website.config';
   import { sendVerificationCode } from '@/api/system/user';
+  import { resolveCompanyRedirectPath } from '@/utils/company';
 
   // 添加页面加载动画效果
   onMounted(() => {
@@ -198,17 +199,18 @@
         };
 
         try {
-          const { code: resultCode, message: msg, data } = await userStore.login(params);
+          const { code: resultCode, message: msg } = await userStore.login(params);
           message.destroyAll();
           if (resultCode == ResultEnum.SUCCESS) {
-            const companies = Array.isArray(data?.companies)
-              ? data.companies
-              : Array.isArray(data?.user?.companies)
-              ? data.user.companies
-              : [];
-            if (!companies.length) {
+            const redirectPathByCompany = resolveCompanyRedirectPath('/', userStore.getUserInfo);
+            if (redirectPathByCompany === PageEnum.BASE_COMPANY_ONBOARDING) {
               message.success('登录成功，请先完善企业入驻信息');
-              router.replace(PageEnum.BASE_COMPANY_ONBOARDING);
+              router.replace(redirectPathByCompany);
+              return;
+            }
+            if (redirectPathByCompany === PageEnum.BASE_COMPANY_PENDING) {
+              message.success('登录成功，企业正在审核中');
+              router.replace(redirectPathByCompany);
               return;
             }
             const toPath = decodeURIComponent((route.query?.redirect || '/') as string);

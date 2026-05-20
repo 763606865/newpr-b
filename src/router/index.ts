@@ -7,7 +7,12 @@ import type { IModuleType } from './types';
 
 const modules = import.meta.glob<IModuleType>('./modules/**/*.ts', { eager: true });
 
-const allowedRouteModuleKeys = new Set(['./modules/system.ts', './modules/setting.ts']);
+const allowedRouteModuleKeys = new Set([
+  './modules/system.ts',
+  './modules/setting.ts',
+  './modules/organization.ts',
+  './modules/attendance.ts',
+]);
 
 const routeModuleList: RouteRecordRaw[] = Object.keys(modules).reduce((list, key) => {
   if (!allowedRouteModuleKeys.has(key)) {

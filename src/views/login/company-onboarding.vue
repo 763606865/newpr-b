@@ -2,7 +2,7 @@
   <div class="onboarding-page">
     <div class="onboarding-card">
       <div class="onboarding-head">
-        <h2>{{ pageTitle }}</h2>
+        <h2>入驻企业</h2>
         <p>{{ onboardingMessage }}</p>
       </div>
       <n-form ref="formRef" :model="formValue" :rules="rules" label-placement="top" class="onboarding-form">
@@ -26,7 +26,7 @@
             placeholder="请输入公司地址"
           />
         </n-form-item>
-        <n-button type="primary" block :loading="loading" @click="handleSubmit">{{ submitText }}</n-button>
+        <n-button type="primary" block :loading="loading" @click="handleSubmit">提交企业信息</n-button>
       </n-form>
     </div>
   </div>
@@ -38,25 +38,20 @@
   import { ResultEnum } from '@/enums/httpEnum';
   import { PageEnum } from '@/enums/pageEnum';
   import { createCompany } from '@/api/system/user';
-  import { useRoute, useRouter } from 'vue-router';
+  import { CURRENT_COMPANY, CURRENT_USER } from '@/store/mutation-types';
+  import { useRouter } from 'vue-router';
   import { useUserStore } from '@/store/modules/user';
+  import { storage } from '@/utils/Storage';
 
   const formRef = ref();
   const message = useMessage();
   const loading = ref(false);
-  const route = useRoute();
   const router = useRouter();
   const userStore = useUserStore();
-  const isRegisterPage = computed(() => route.name === PageEnum.BASE_COMPANY_REGISTER_NAME);
-  const pageTitle = computed(() => (isRegisterPage.value ? '注册企业' : '入驻企业'));
-  const submitText = computed(() => (isRegisterPage.value ? '提交注册申请' : '提交企业信息'));
   const onboardingMessage = computed(() => {
     const currentCompany = userStore.getCurrentCompany;
     if (currentCompany && Number(currentCompany.status) === 0) {
       return '当前企业申请未通过或已被禁用，请修改企业信息后重新提交申请。';
-    }
-    if (isRegisterPage.value) {
-      return '您可以继续注册新的企业，提交后将进入审核流程。';
     }
     return '当前账号暂未绑定任何企业，请先补充企业信息后继续使用系统。';
   });
@@ -93,13 +88,21 @@
         loading.value = true;
         const { code, message: msg } = await createCompany({ ...formValue });
         if (code === ResultEnum.SUCCESS) {
-          await userStore.getInfo();
+          const pendingCompany = {
+            ...formValue,
+            status: 2,
+          };
+          const userInfo = {
+            ...userStore.getUserInfo,
+            current_company: pendingCompany,
+          };
+
+          userStore.setCurrentCompany(pendingCompany);
+          userStore.setUserInfo(userInfo);
+          storage.set(CURRENT_COMPANY, pendingCompany);
+          storage.set(CURRENT_USER, userInfo);
           message.success(msg || '企业入驻申请已提交，请等待审核');
-          if (isRegisterPage.value) {
-            router.replace(PageEnum.BASE_HOME);
-          } else {
-            router.replace(PageEnum.BASE_COMPANY_PENDING);
-          }
+          router.replace(PageEnum.BASE_COMPANY_PENDING);
           return;
         }
         message.error(msg || '企业入驻申请提交失败');

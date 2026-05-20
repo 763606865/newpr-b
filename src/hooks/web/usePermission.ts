@@ -1,4 +1,5 @@
 import { useUserStore } from '@/store/modules/user';
+import { hasCompanyFeatureAccess } from '@/utils/company-access';
 
 export function usePermission() {
   const userStore = useUserStore();
@@ -14,13 +15,17 @@ export function usePermission() {
     });
   }
 
+  function _someCompanyFeatures(accesses: string[]) {
+    return hasCompanyFeatureAccess(userStore.getCurrentCompany, accesses);
+  }
+
   /**
    * 判断是否存在权限
    * 可用于 v-if 显示逻辑
    * */
   function hasPermission(accesses: string[]): boolean {
     if (!accesses || !accesses.length) return true;
-    return _somePermissions(accesses);
+    return _somePermissions(accesses) || _someCompanyFeatures(accesses);
   }
 
   /**
@@ -28,9 +33,8 @@ export function usePermission() {
    * @param accesses
    */
   function hasEveryPermission(accesses: string[]): boolean {
-    const permissionsList = userStore.getPermissions;
     if (Array.isArray(accesses)) {
-      return permissionsList.every((access: any) => accesses.includes(access.value));
+      return accesses.every((access) => hasPermission([access]));
     }
     throw new Error(`[hasEveryPermission]: ${accesses} should be a array !`);
   }
@@ -41,9 +45,8 @@ export function usePermission() {
    * @param accessMap
    */
   function hasSomePermission(accesses: string[]): boolean {
-    const permissionsList = userStore.getPermissions;
     if (Array.isArray(accesses)) {
-      return permissionsList.some((access: any) => accesses.includes(access.value));
+      return accesses.some((access) => hasPermission([access]));
     }
     throw new Error(`[hasSomePermission]: ${accesses} should be a array !`);
   }

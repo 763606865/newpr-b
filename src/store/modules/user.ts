@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia';
 import { store } from '@/store';
-import { ACCESS_TOKEN, ACCESS_TOKEN_TYPE, CURRENT_COMPANY, CURRENT_USER, IS_SCREENLOCKED } from '@/store/mutation-types';
+import { ACCESS_TOKEN, ACCESS_TOKEN_TYPE, CURRENT_COMPANY, CURRENT_USER, IS_SCREENLOCKED, PENDING_COMPANY } from '@/store/mutation-types';
 import { ResultEnum } from '@/enums/httpEnum';
 
-import { getUserInfo as getUserInfoApi, login } from '@/api/system/user';
+import { getUserInfo as getUserInfoApi, getUserInfoLatest as getUserInfoLatestApi, login } from '@/api/system/user';
 import { storage } from '@/utils/Storage';
 import { PageEnum } from '@/enums/pageEnum';
+import { normalizeUserInfo } from '@/utils/company';
+import { getCompanyFeatureCodeList, getCompanyMenuCodeList } from '@/utils/company-access';
 
 export type UserInfoType = {
   // TODO: add your own data
@@ -52,6 +54,12 @@ export const useUserStore = defineStore({
     getCurrentCompany(): Record<string, any> | null {
       return this.currentCompany || null;
     },
+    getCompanyMenuCodes(): string[] {
+      return getCompanyMenuCodeList(this.currentCompany);
+    },
+    getCompanyFeatureCodes(): string[] {
+      return getCompanyFeatureCodeList(this.currentCompany);
+    },
     getAvatar(): string {
       return this.avatar;
     },
@@ -66,6 +74,16 @@ export const useUserStore = defineStore({
     },
   },
   actions: {
+    applyAuthState(data: Record<string, any> = {}) {
+      const ex = 7 * 24 * 60 * 60;
+      const token = data?.access_token || data?.token || '';
+      const tokenType = data?.token_type || 'Bearer';
+
+      storage.set(ACCESS_TOKEN, token, ex);
+      storage.set(ACCESS_TOKEN_TYPE, tokenType, ex);
+      this.setToken(token);
+      this.setTokenType(tokenType);
+    },
     setToken(token: string) {
       this.token = token;
     },
@@ -84,41 +102,32 @@ export const useUserStore = defineStore({
     setUserInfo(info: UserInfoType) {
       this.info = info;
     },
-    applyAuthState(data: Record<string, any>, expires = 7 * 24 * 60 * 60) {
-      const token = data?.access_token || data?.token || '';
-      const tokenType = data?.token_type || 'Bearer';
-      const userInfo = data?.user || data || {};
-      const currentCompany = data?.user?.current_company || data?.current_company || null;
-
-      storage.set(ACCESS_TOKEN, token, expires);
-      storage.set(ACCESS_TOKEN_TYPE, tokenType, expires);
-      storage.set(CURRENT_USER, userInfo, expires);
-      storage.set(CURRENT_COMPANY, currentCompany, expires);
-      storage.set(IS_SCREENLOCKED, false);
-
-      this.setToken(token);
-      this.setTokenType(tokenType);
-      this.setCurrentCompany(currentCompany);
-      this.setUserInfo(userInfo);
-    },
     // 登录
     async login(params: any) {
       const response = await login(params);
       const { code, data } = response;
       if (code === ResultEnum.SUCCESS) {
+        const ex = 7 * 24 * 60 * 60;
+        const userInfo = normalizeUserInfo(data);
+        const currentCompany = userInfo.current_company || null;
         this.applyAuthState(data);
+        storage.set(CURRENT_USER, userInfo, ex);
+        storage.set(CURRENT_COMPANY, currentCompany, ex);
+        storage.set(IS_SCREENLOCKED, false);
+        this.setCurrentCompany(currentCompany);
+        this.setUserInfo(userInfo);
       }
       return response;
     },
 
     // 获取用户信息
-    async getInfo() {
+    async getInfo(forceLatest = false) {
       // @ts-ignore
       const Message = window.$message;
       // @ts-ignore
       const Modal = window.$dialog;
       const LoginPath = PageEnum.BASE_LOGIN;
-      const response = await getUserInfoApi();
+      const response = await (forceLatest ? getUserInfoLatestApi() : getUserInfoApi());
       const { code, data } = response;
       if (code !== ResultEnum.SUCCESS) {
         if (code === 401) {
@@ -129,7 +138,7 @@ export const useUserStore = defineStore({
           throw new Error('getInfo: failed to fetch user details!');
         }
       }
-      const userInfo = data || {};
+      const userInfo = normalizeUserInfo(data);
       const permissionsList: any[] = [];
       if (data.roles && data.roles.length > 0) {
         for (const role of data.roles) {
@@ -142,13 +151,23 @@ export const useUserStore = defineStore({
         permissionsList.push(...data.permissions);
       }
       this.setPermissions(permissionsList);
-      const currentCompany = userInfo?.current_company || userInfo?.user?.current_company || null;
-      this.setUserInfo(userInfo);
+      const localCurrentCompany = this.getCurrentCompany || storage.get(CURRENT_COMPANY, null);
+      const currentCompany =
+        userInfo.current_company ||
+        (Number(localCurrentCompany?.status) === 2 ? localCurrentCompany : null);
+      const mergedUserInfo = {
+        ...userInfo,
+        current_company: currentCompany,
+      };
+      if (currentCompany) {
+        storage.remove(PENDING_COMPANY);
+      }
+      this.setUserInfo(mergedUserInfo);
       this.setCurrentCompany(currentCompany);
-      storage.set(CURRENT_USER, userInfo);
+      storage.set(CURRENT_USER, mergedUserInfo);
       storage.set(CURRENT_COMPANY, currentCompany);
-      this.setAvatar(userInfo.avatar || '');
-      return userInfo;
+      this.setAvatar(mergedUserInfo.avatar || '');
+      return mergedUserInfo;
     },
 
     // 登出
@@ -162,6 +181,7 @@ export const useUserStore = defineStore({
       storage.remove(ACCESS_TOKEN_TYPE);
       storage.remove(CURRENT_COMPANY);
       storage.remove(CURRENT_USER);
+      storage.remove(PENDING_COMPANY);
     },
   },
 });

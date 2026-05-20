@@ -1,6 +1,7 @@
 import {
   SettingOutlined,
   SearchOutlined,
+  DownOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   FullscreenOutlined,
@@ -19,6 +20,7 @@ export default {
   LockOutlined,
   GithubOutlined,
   SearchOutlined,
+  DownOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   FullscreenOutlined,

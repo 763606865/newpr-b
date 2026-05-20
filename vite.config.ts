@@ -22,7 +22,11 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
   const root = process.cwd();
   const env = loadEnv(mode, root);
   const viteEnv = wrapperEnv(env);
-  const { VITE_PUBLIC_PATH, VITE_PORT, VITE_PROXY } = viteEnv;
+  const {
+    VITE_PUBLIC_PATH = '/',
+    VITE_PORT = 3100,
+    VITE_PROXY = [],
+  } = viteEnv;
   const isBuild = command === 'build';
   return {
     base: VITE_PUBLIC_PATH,

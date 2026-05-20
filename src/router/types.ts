@@ -21,6 +21,10 @@ export interface Meta {
   title: string;
   // 是否忽略权限
   ignoreAuth?: boolean;
+  // 是否忽略企业套餐菜单过滤
+  ignoreCompanyMenu?: boolean;
+  menuCode?: string;
+  menuCodes?: string[];
   permissions?: string[];
   // 是否不缓存
   noKeepAlive?: boolean;
