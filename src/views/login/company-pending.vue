@@ -46,6 +46,7 @@
   import { PENDING_COMPANY } from '@/store/mutation-types';
   import { useUserStore } from '@/store/modules/user';
   import { storage } from '@/utils/Storage';
+import { log } from 'console';
 
   const loading = ref(false);
   const polling = ref(false);
@@ -134,7 +135,7 @@
         selectedApprovedCompanyId.value = null;
       }
 
-      if (!userInfo?.current_company && approvedCompanyOptions.value.length === 1) {
+      if (approvedCompanyOptions.value.length === 1) {
         const switched = await applyApprovedCompanyToken(
           approvedCompanyOptions.value[0].value,
           '审核已通过，即将进入系统'

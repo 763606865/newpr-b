@@ -71,34 +71,51 @@ export function createRouterGuards(router: Router) {
       return;
     }
 
-    const userInfo = await userStore.getInfo();
-    const redirectPathByCompany = resolveCompanyRedirectPath(to.path, userInfo);
-    if (redirectPathByCompany) {
+    try {
+      const userInfo = await userStore.getInfo();
+      const redirectPathByCompany = resolveCompanyRedirectPath(to.path, userInfo);
+      if (redirectPathByCompany) {
+        asyncRouteStore.setDynamicRouteAdded(true);
+        next({ path: redirectPathByCompany, replace: true });
+        Loading && Loading.finish();
+        return;
+      }
+
+      const routes = await asyncRouteStore.generateRoutes(userInfo);
+
+      // 动态添加可访问路由表
+      routes.forEach((item) => {
+        router.addRoute(item as unknown as RouteRecordRaw);
+      });
+
+      //添加404
+      const isErrorPage = router.getRoutes().findIndex((item) => item.name === ErrorPageRoute.name);
+      if (isErrorPage === -1) {
+        router.addRoute(ErrorPageRoute as unknown as RouteRecordRaw);
+      }
+
+      const redirectPath = (from.query.redirect || to.path) as string;
+      const redirect = decodeURIComponent(redirectPath);
+      const nextData = to.path === redirect ? { ...to, replace: true } : { path: redirect };
       asyncRouteStore.setDynamicRouteAdded(true);
-      next({ path: redirectPathByCompany, replace: true });
+      next(nextData);
       Loading && Loading.finish();
-      return;
+    } catch (error) {
+      console.error('[router.beforeEach] failed to initialize user context', error);
+      const redirectData: { path: string; replace: boolean; query?: Recordable<string> } = {
+        path: LOGIN_PATH,
+        replace: true,
+      };
+
+      if (to.path) {
+        redirectData.query = {
+          redirect: to.path,
+        };
+      }
+
+      next(redirectData);
+      Loading && Loading.finish();
     }
-
-    const routes = await asyncRouteStore.generateRoutes(userInfo);
-
-    // 动态添加可访问路由表
-    routes.forEach((item) => {
-      router.addRoute(item as unknown as RouteRecordRaw);
-    });
-
-    //添加404
-    const isErrorPage = router.getRoutes().findIndex((item) => item.name === ErrorPageRoute.name);
-    if (isErrorPage === -1) {
-      router.addRoute(ErrorPageRoute as unknown as RouteRecordRaw);
-    }
-
-    const redirectPath = (from.query.redirect || to.path) as string;
-    const redirect = decodeURIComponent(redirectPath);
-    const nextData = to.path === redirect ? { ...to, replace: true } : { path: redirect };
-    asyncRouteStore.setDynamicRouteAdded(true);
-    next(nextData);
-    Loading && Loading.finish();
   });
 
   router.afterEach((to, _, failure) => {

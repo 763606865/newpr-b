@@ -1,9 +1,20 @@
 import { defineStore } from 'pinia';
 import { store } from '@/store';
-import { ACCESS_TOKEN, ACCESS_TOKEN_TYPE, CURRENT_COMPANY, CURRENT_USER, IS_SCREENLOCKED, PENDING_COMPANY } from '@/store/mutation-types';
+import {
+  ACCESS_TOKEN,
+  ACCESS_TOKEN_TYPE,
+  CURRENT_COMPANY,
+  CURRENT_USER,
+  IS_SCREENLOCKED,
+  PENDING_COMPANY,
+} from '@/store/mutation-types';
 import { ResultEnum } from '@/enums/httpEnum';
 
-import { getUserInfo as getUserInfoApi, getUserInfoLatest as getUserInfoLatestApi, login } from '@/api/system/user';
+import {
+  getUserInfo as getUserInfoApi,
+  getUserInfoLatest as getUserInfoLatestApi,
+  login,
+} from '@/api/system/user';
 import { storage } from '@/utils/Storage';
 import { PageEnum } from '@/enums/pageEnum';
 import { normalizeUserInfo } from '@/utils/company';
@@ -124,18 +135,27 @@ export const useUserStore = defineStore({
     async getInfo(forceLatest = false) {
       // @ts-ignore
       const Message = window.$message;
-      // @ts-ignore
-      const Modal = window.$dialog;
       const LoginPath = PageEnum.BASE_LOGIN;
-      const response = await (forceLatest ? getUserInfoLatestApi() : getUserInfoApi());
-      const { code, data } = response;
+      let response;
+
+      try {
+        response = await (forceLatest ? getUserInfoLatestApi() : getUserInfoApi());
+      } catch (error: any) {
+        const errorMessage = error?.message || '获取用户信息失败，请稍后重试';
+        Message?.error(errorMessage);
+        throw new Error(`getInfo: ${errorMessage}`);
+      }
+
+      const { code, data, message } = response;
       if (code !== ResultEnum.SUCCESS) {
         if (code === 401) {
           Message?.warning('登录身份已失效，请重新登录!');
           storage.clear();
           window.location.href = LoginPath;
         } else {
-          throw new Error('getInfo: failed to fetch user details!');
+          const errorMessage = message || '获取用户信息失败，请稍后重试';
+          Message?.error(errorMessage);
+          throw new Error(`getInfo: ${errorMessage}`);
         }
       }
       const userInfo = normalizeUserInfo(data);
@@ -176,7 +196,13 @@ export const useUserStore = defineStore({
       this.setTokenType('Bearer');
       this.setCurrentCompany(null);
       this.setPermissions([]);
-      this.setUserInfo({ username: '', email: '', companies: [], current_company: null, permissions: [] });
+      this.setUserInfo({
+        username: '',
+        email: '',
+        companies: [],
+        current_company: null,
+        permissions: [],
+      });
       storage.remove(ACCESS_TOKEN);
       storage.remove(ACCESS_TOKEN_TYPE);
       storage.remove(CURRENT_COMPANY);
